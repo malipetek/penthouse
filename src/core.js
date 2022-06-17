@@ -25,13 +25,20 @@ function loadPage (
   page,
   url,
   pageGotoOptions,
+  mobileEmulation,
   timeout,
   pageLoadSkipTimeout,
   allowedResponseCode
 ) {
   debuglog('page load start')
   let waitingForPageLoad = true
-  let loadPagePromise = page.goto(url, pageGotoOptions)
+  let loadPagePromise = (async () => {
+    if (mobileEmulation) {
+      await page.emulate(mobileEmulation)
+    }
+    return page.goto(url, pageGotoOptions)
+  })()
+
   if (pageLoadSkipTimeout) {
     loadPagePromise = Promise.race([
       loadPagePromise,
@@ -155,7 +162,11 @@ async function preparePage ({
   // update it here.
   let setViewportPromise = Promise.resolve()
   const currentViewport = page.viewport()
-  if (!currentViewport || currentViewport.width !== width || currentViewport.height !== height) {
+  if (
+    !currentViewport ||
+    currentViewport.width !== width ||
+    currentViewport.height !== height
+  ) {
     setViewportPromise = page
       .setViewport({ width, height })
       .then(() => debuglog('viewport size updated'))
@@ -269,6 +280,7 @@ async function pruneNonCriticalCssLauncher ({
   pagePromise,
   url,
   pageGotoOptions,
+  mobileEmulation,
   cssString,
   width,
   height,
@@ -401,6 +413,7 @@ async function pruneNonCriticalCssLauncher ({
       page,
       url,
       pageGotoOptions,
+      mobileEmulation,
       timeout,
       pageLoadSkipTimeout,
       allowedResponseCode
